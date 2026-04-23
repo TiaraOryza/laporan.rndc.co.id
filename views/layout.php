@@ -11,13 +11,13 @@ $__path = parse_url($__current, PHP_URL_PATH) ?: '/';
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
 <title><?= e(config('app_name')) ?></title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  [x-cloak] { display: none !important; }
-  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-</style>
+<link rel="icon" type="image/png" href="/public_assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/public_assets/app.css?v=15">
+<script defer src="/public_assets/alpine.min.js?v=1"></script>
+<script src="/public_assets/chart.umd.min.js?v=1"></script>
 </head>
 <body class="min-h-full bg-slate-50 text-slate-800">
 
@@ -33,18 +33,22 @@ $__path = parse_url($__current, PHP_URL_PATH) ?: '/';
     </div>
     <nav class="flex-1 px-3 py-3 space-y-1 overflow-y-auto text-sm">
       <?php
+      // Each entry: [href, label, svg-path, ability-key]. ability=null means visible to all authenticated users.
       $nav = [
-        ['/', 'Dashboard', 'M3 10l9-7 9 7v10a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2V10z'],
-        ['/reports', 'Laporan Harian', 'M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2'],
-        ['/summary', 'Rangkuman', 'M9 17v-2a4 4 0 0 1 4-4h4M3 12h6m-3-3v6m9 3l3 3m0-6l-3 3'],
+        ['/',                'Dashboard',       'M3 10l9-7 9 7v10a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2V10z', null],
+        ['/reports',         'Laporan Harian',  'M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2', null],
+        ['/project-reports', 'Laporan Proyek',  'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z', '__projectReports__'],
+        ['/summary',         'Rangkuman',       'M9 17v-2a4 4 0 0 1 4-4h4M3 12h6m-3-3v6m9 3l3 3m0-6l-3 3', null],
+        ['/projects',        'Proyek',          'M3 7h18M3 12h18M3 17h18', 'projects.view'],
+        ['/users',           'Pengguna',        'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m6-5.13a4 4 0 1 1-8 0 4 4 0 0 1 8 0zm6 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0z', 'users.manage'],
       ];
-      if ($__user['role'] !== 'employee') {
-        $nav[] = ['/projects', 'Proyek', 'M3 7h18M3 12h18M3 17h18'];
-      }
-      if ($__user['role'] === 'admin') {
-        $nav[] = ['/users', 'Pengguna', 'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m6-5.13a4 4 0 1 1-8 0 4 4 0 0 1 8 0zm6 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0z'];
-      }
-      foreach ($nav as [$href, $label, $icon]):
+      foreach ($nav as [$href, $label, $icon, $can]):
+        // Special: laporan proyek tampil untuk admin/director (viewAll) atau pic (viewOwn)
+        if ($can === '__projectReports__') {
+          if (!Auth::can('projectReports.viewAll') && !Auth::can('projectReports.viewOwn')) continue;
+        } elseif ($can !== null && !Auth::can($can)) {
+          continue;
+        }
         $active = ($href === '/' && $__path === '/') || ($href !== '/' && str_starts_with($__path, $href));
       ?>
       <a href="<?= e($href) ?>"
@@ -92,14 +96,14 @@ $__path = parse_url($__current, PHP_URL_PATH) ?: '/';
       <?php if ($success): ?>
         <div x-data="{s:true}" x-show="s" x-cloak class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 flex items-start gap-3">
           <svg class="w-5 h-5 mt-0.5 flex-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-          <div class="flex-1"><?= $success /* already escaped on set */ ?></div>
+          <div class="flex-1"><?= nl2br(e($success)) ?></div>
           <button @click="s=false" class="text-emerald-600 hover:text-emerald-800">✕</button>
         </div>
       <?php endif; ?>
       <?php if ($error): ?>
         <div x-data="{s:true}" x-show="s" x-cloak class="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 flex items-start gap-3">
           <svg class="w-5 h-5 mt-0.5 flex-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19h14.14a2 2 0 0 0 1.73-3L13.73 4a2 2 0 0 0-3.46 0L3.2 16a2 2 0 0 0 1.73 3z"/></svg>
-          <div class="flex-1"><?= $error ?></div>
+          <div class="flex-1"><?= nl2br(e($error)) ?></div>
           <button @click="s=false" class="text-red-600 hover:text-red-800">✕</button>
         </div>
       <?php endif; ?>
