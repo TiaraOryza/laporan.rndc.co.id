@@ -1,0 +1,27 @@
+# Environment
+.env
+.env.local
+
+# Runtime data
+storage/database.sqlite
+storage/database.sqlite-journal
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/logs/
+storage/cache/
+
+# Dependencies
+vendor/
+node_modules/
+
+# Claude Code local state
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Build output
+public_assets/app.css.map
